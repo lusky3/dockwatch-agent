@@ -14,6 +14,6 @@ We take the security of Dockwatch Agent seriously. If you believe you have found
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 
-Instead, please send an email to security@notifiarr.com with a description of the issue and steps to reproduce it.
+Instead, please use GitHub's security reporting feature with a description of the issue and steps to reproduce it.
 
 We will acknowledge receipt of your vulnerability report within 48 hours and provide a timeline for addressing the issue.

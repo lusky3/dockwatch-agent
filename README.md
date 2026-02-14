@@ -28,20 +28,27 @@ docker run -d \
 ### Manual Installation
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/Notifiarr/dockwatch-agent.git
    cd dockwatch-agent
    ```
+
 2. Install dependencies:
+
    ```bash
    npm install
    ```
+
 3. Create a `.env` file:
+
    ```env
    PORT=9999
    DOCKWATCH_API_KEY=your_secure_api_key
    ```
+
 4. Start the agent:
+
    ```bash
    npm start
    ```
@@ -61,6 +68,7 @@ For detailed API definitions, see [Dockwatch API Docs](https://notifiarr.wiki/en
 The agent requires an API key for all `/api/*` requests. Set this via the `DOCKWATCH_API_KEY` environment variable.
 
 Pass the key as:
+
 - Header: `X-Api-Key: your_key`
 - Query Param: `?apikey=your_key`
 
