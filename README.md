@@ -1,0 +1,73 @@
+# Dockwatch Agent
+
+[![Docker Build](https://github.com/Notifiarr/dockwatch-agent/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/Notifiarr/dockwatch-agent/actions/workflows/docker-publish.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+Dockwatch Agent is a lightweight, headless implementation of the Dockwatch API. It allows a primary [Dockwatch](https://github.com/Notifiarr/dockwatch) instance to manage remote Docker nodes without requiring the full Dockwatch UI and overhead on every host.
+
+## Features
+
+- **Lightweight**: Built with Node.js and Express for minimal footprint.
+- **Headless**: No UI, designed to be controlled by a central Dockwatch instance.
+- **Full Compatibility**: Implements the core Docker management endpoints used by Dockwatch.
+- **Secure**: Authentication via `X-Api-Key` or `apikey` query parameter.
+
+## Quick Start
+
+### Docker (Recommended)
+
+```bash
+docker run -d \
+  --name dockwatch-agent \
+  -p 9999:9999 \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -e DOCKWATCH_API_KEY=your_secure_api_key \
+  ghcr.io/notifiarr/dockwatch-agent:latest
+```
+
+### Manual Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Notifiarr/dockwatch-agent.git
+   cd dockwatch-agent
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Create a `.env` file:
+   ```env
+   PORT=9999
+   DOCKWATCH_API_KEY=your_secure_api_key
+   ```
+4. Start the agent:
+   ```bash
+   npm start
+   ```
+
+## API Documentation
+
+The agent implements the standard Dockwatch API. Key categories include:
+
+- `/api/server/*`: Health checks and system info.
+- `/api/docker/*`: Container management (start, stop, logs, inspect).
+- `/api/stats/*`: Resource usage and metrics.
+
+For detailed API definitions, see [Dockwatch API Docs](https://notifiarr.wiki/en/Docker/Dockwatch).
+
+## Security
+
+The agent requires an API key for all `/api/*` requests. Set this via the `DOCKWATCH_API_KEY` environment variable.
+
+Pass the key as:
+- Header: `X-Api-Key: your_key`
+- Query Param: `?apikey=your_key`
+
+## Contributing
+
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

@@ -1,0 +1,105 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Diagnostic reports (https://nodejs.org/api/report.html)
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# TypeScript v1-v2-v3 declaration files
+typings/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional stylelint cache
+.stylelintcache
+
+# Optional microbundle cache
+.cache
+.parcel-cache
+
+# Optional Next.js build output
+.next
+out
+
+# Optional Nuxt.js build output
+.nuxt
+dist
+
+# Optional cache directory
+.cache
+
+# Optional frontend build directory
+build
+
+# Optional cypress coverage directory
+coverage
+.nyc_output
+
+# Optional Grunt intermediate storage (https://gruntjs.com/creating-plugins#testing)
+.grunt
+
+# Optional Bower dependency directory (https://bower.io/)
+bower_components
+
+# Optional node-waf configuration
+.lock-wscript
+
+# Optional compiled binary addons (https://nodejs.org/api/addons.html)
+build/Release
+
+# Optional dependency tarballs
+*.tgz
+
+# Optional yarn v2
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# Optional env files
+.env
+.env.test
+.env.production
+.env.local
+
+# Optional serverless directories
+.serverless/
+
+# Optional fusebox cache
+.fusebox/
+
+# Optional DynamoDB Local files
+.dynamodb/
+
+# Optional Tern node project files
+.tern-port
+
+# Optional Stores (OSX)
+.DS_Store
+
+# Optional temporary files
+tmp/
+temp/
+
+# Agentic AI
+.agent/
+.gemini/
+server.log
+test_api.js
