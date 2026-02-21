@@ -1,0 +1,10 @@
+{
+    // Inherit global rules, override for MkDocs-style API docs
+    "extends": "../../.markdownlint.jsonc",
+    // MkDocs uses <span> and <br> for formatting
+    "MD033": false,
+    // Duplicate headings expected across API sections
+    "MD024": false,
+    // MkDocs admonition syntax triggers false positives
+    "MD038": false
+}

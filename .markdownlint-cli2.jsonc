@@ -1,0 +1,7 @@
+{
+    // Ignore generated and vendored directories
+    "ignores": [
+        "node_modules/**",
+        "coverage/**"
+    ]
+}

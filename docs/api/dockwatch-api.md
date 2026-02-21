@@ -692,7 +692,6 @@ Error example:
     === "GET"
         No parameters
 
-
 ### <span style="display:none;">overview</span>
 
 ??? abstract "overview"
