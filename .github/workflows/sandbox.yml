@@ -1,0 +1,79 @@
+name: Sandbox Test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Dockerfile"
+      - "package.json"
+      - "package-lock.json"
+      - "index.js"
+      - "controllers/**"
+      - "middleware/**"
+      - "routes/**"
+      - "utils/**"
+      - "tests/sandbox/**"
+      - ".github/workflows/sandbox.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "Dockerfile"
+      - "package.json"
+      - "package-lock.json"
+      - "index.js"
+      - "controllers/**"
+      - "middleware/**"
+      - "routes/**"
+      - "utils/**"
+      - "tests/sandbox/**"
+      - ".github/workflows/sandbox.yml"
+
+env:
+  API_KEY: test-sandbox-key
+
+jobs:
+  sandbox:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build Docker image
+        run: docker build -t dockwatch-agent:test .
+
+      - name: Start dockwatch-agent container
+        run: |
+          docker run -d \
+            --name dockwatch-agent \
+            -p 9999:9999 \
+            -e DOCKWATCH_API_KEY=${{ env.API_KEY }} \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            dockwatch-agent:test
+
+      - name: Wait for agent to be ready
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:9999/ping > /dev/null 2>&1; then
+              echo "Agent is ready"
+              exit 0
+            fi
+            echo "Waiting... ($i/30)"
+            sleep 1
+          done
+          echo "Agent failed to start"
+          docker logs dockwatch-agent
+          exit 1
+
+      - name: Run smoke tests
+        env:
+          AGENT_URL: http://localhost:9999
+        run: |
+          chmod +x tests/sandbox/smoke.sh
+          API_KEY=${{ env.API_KEY }} tests/sandbox/smoke.sh
+
+      - name: Show agent logs on failure
+        if: failure()
+        run: docker logs dockwatch-agent
+
+      - name: Cleanup
+        if: always()
+        run: docker rm -f dockwatch-agent || true
