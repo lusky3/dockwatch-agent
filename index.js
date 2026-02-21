@@ -36,3 +36,5 @@ app.use('/api', (req, res) => {
 app.listen(PORT, () => {
     console.log(`Dockwatch Agent listening on port ${PORT}`);
 });
+
+module.exports = app;

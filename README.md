@@ -1,6 +1,6 @@
 # Dockwatch Agent
 
-[![Docker Build](https://github.com/Notifiarr/dockwatch-agent/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/Notifiarr/dockwatch-agent/actions/workflows/docker-publish.yml)
+[![Docker Build](https://github.com/lusky3/dockwatch-agent/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/lusky3/dockwatch-agent/actions/workflows/docker-publish.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Dockwatch Agent is a lightweight, headless implementation of the Dockwatch API. It allows a primary [Dockwatch](https://github.com/Notifiarr/dockwatch) instance to manage remote Docker nodes without requiring the full Dockwatch UI and overhead on every host.
@@ -22,7 +22,7 @@ docker run -d \
   -p 9999:9999 \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -e DOCKWATCH_API_KEY=your_secure_api_key \
-  ghcr.io/notifiarr/dockwatch-agent:latest
+  ghcr.io/lusky3/dockwatch-agent:latest
 ```
 
 ### Manual Installation
@@ -30,7 +30,7 @@ docker run -d \
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/Notifiarr/dockwatch-agent.git
+   git clone https://github.com/lusky3/dockwatch-agent.git
    cd dockwatch-agent
    ```
 
@@ -61,9 +61,14 @@ The agent implements the standard Dockwatch API. Key categories include:
 - `/api/docker/*`: Container management (start, stop, logs, inspect).
 - `/api/stats/*`: Resource usage and metrics.
 
-For detailed API definitions, see [Dockwatch API Docs](https://notifiarr.wiki/en/Docker/Dockwatch).
+For detailed API definitions, see [Dockwatch API Docs](https://dockwatch.wiki/pages/misc/api/).
 
 ## Security
+
+> **Warning**
+> This agent requires access to the Docker socket (`/var/run/docker.sock`), which grants full control over the host's Docker daemon. This effectively provides root-level access to the host system. Only run this agent on trusted networks and ensure the API key is strong and kept secret. Do not expose the agent port to the public internet without additional safeguards such as a reverse proxy with TLS.
+>
+> For improved security, consider using a Docker socket proxy such as [Tecnativa/docker-socket-proxy](https://github.com/Tecnativa/docker-socket-proxy) to limit which API endpoints are accessible, rather than mounting the socket directly.
 
 The agent requires an API key for all `/api/*` requests. Set this via the `DOCKWATCH_API_KEY` environment variable.
 
@@ -74,7 +79,7 @@ Pass the key as:
 
 ## Contributing
 
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+Please read [CONTRIBUTING.md](.github/CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
 
 ## License
 
