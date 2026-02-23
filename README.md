@@ -1,6 +1,10 @@
 # Dockwatch Agent
 
+[![CI](https://github.com/lusky3/dockwatch-agent/actions/workflows/build-test.yml/badge.svg)](https://github.com/lusky3/dockwatch-agent/actions/workflows/build-test.yml)
+[![codecov](https://codecov.io/github/lusky3/dockwatch-agent/graph/badge.svg?token=rNhduPFUGr)](https://codecov.io/github/lusky3/dockwatch-agent)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=lusky3_dockwatch-agent&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=lusky3_dockwatch-agent)
 [![Docker Build](https://github.com/lusky3/dockwatch-agent/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/lusky3/dockwatch-agent/actions/workflows/docker-publish.yml)
+[![Docker Pulls](https://img.shields.io/docker/pulls/lusky3/dockwatch-agent)](https://hub.docker.com/r/lusky3/dockwatch-agent)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Dockwatch Agent is a lightweight, headless implementation of the Dockwatch API. It allows a primary [Dockwatch](https://github.com/Notifiarr/dockwatch) instance to manage remote Docker nodes without requiring the full Dockwatch UI and overhead on every host.
