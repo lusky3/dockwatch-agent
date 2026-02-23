@@ -109,3 +109,4 @@ config/
 
 # Test artifacts
 tests/_test_*
+test-report.junit.xml
