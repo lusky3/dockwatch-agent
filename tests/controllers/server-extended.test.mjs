@@ -16,7 +16,7 @@ require.cache[loggerPath] = { id: loggerPath, filename: loggerPath, loaded: true
 
 const ctrlPath = require.resolve('../../controllers/server.js');
 delete require.cache[ctrlPath];
-const { getServerLog, postLogDelete, postLogPurge, postTaskRun } = await import('../../controllers/server.js');
+const { getServerPing, getServerTime, getServerLog, postLogDelete, postLogPurge, postTaskRun } = await import('../../controllers/server.js');
 
 function req(overrides = {}) { return { query: {}, body: {}, ...overrides }; }
 function res() {
@@ -29,6 +29,24 @@ function res() {
 
 describe('Server Controller - Extended', () => {
     beforeEach(() => { vi.clearAllMocks(); });
+
+    // --- getServerPing ---
+    it('getServerPing returns version string', () => {
+        const r = res();
+        getServerPing(req(), r);
+        expect(r.body.code).toBe(200);
+        expect(r.body.response.result).toMatch(/^v\d+\.\d+\.\d+ - v\d+\.\d+\.\d+$/);
+    });
+
+    // --- getServerTime ---
+    it('getServerTime returns time and timezone', () => {
+        const r = res();
+        getServerTime(req(), r);
+        expect(r.body.code).toBe(200);
+        expect(r.body.response.result).toHaveProperty('time');
+        expect(r.body.response.result).toHaveProperty('timezone');
+        expect(r.body.response.result.time).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    });
 
     // --- getServerLog ---
     it('getServerLog returns log contents', () => {
