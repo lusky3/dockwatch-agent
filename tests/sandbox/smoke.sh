@@ -14,15 +14,15 @@ check() {
     local body="${1:-}"
 
     local args=(-s -o /tmp/resp_body -w "%{http_code}" -H "X-Api-Key: ${API_KEY}")
-    if [ "$method" = "POST" ]; then
+    if [[ "$method" = "POST" ]]; then
         args+=(-X POST -H "Content-Type: application/json")
-        [ -n "$body" ] && args+=(-d "$body")
+        [[ -n "$body" ]] && args+=(-d "$body")
     fi
 
     local status
     status=$(curl "${args[@]}" "${AGENT_URL}${path}")
 
-    if [ "$status" = "$expected_status" ]; then
+    if [[ "$status" = "$expected_status" ]]; then
         echo "  PASS  ${desc} (${status})"
         PASS=$((PASS + 1))
     else
@@ -30,6 +30,7 @@ check() {
         echo "        body: $(cat /tmp/resp_body)"
         FAIL=$((FAIL + 1))
     fi
+    return 0
 }
 
 echo "=== Dockwatch Agent Smoke Tests ==="
@@ -42,7 +43,7 @@ check "GET /ping" GET "/ping" 200
 echo "--- Auth ---"
 # No key should 401
 status=$(curl -s -o /dev/null -w "%{http_code}" "${AGENT_URL}/api/server/ping")
-if [ "$status" = "401" ]; then
+if [[ "$status" = "401" ]]; then
     echo "  PASS  Rejects missing API key (401)"
     PASS=$((PASS + 1))
 else
@@ -72,7 +73,7 @@ echo "--- Container lifecycle (self) ---"
 SELF_ID=$(curl -s -H "X-Api-Key: ${API_KEY}" "${AGENT_URL}/api/docker/processList" \
     | grep -o '"Id":"[^"]*"' | head -1 | cut -d'"' -f4)
 
-if [ -n "$SELF_ID" ]; then
+if [[ -n "$SELF_ID" ]]; then
     SHORT_ID="${SELF_ID:0:12}"
     check "GET /api/docker/container/inspect" GET "/api/docker/container/inspect?name=${SHORT_ID}" 200
     check "GET /api/docker/container/logs" GET "/api/docker/container/logs?name=${SHORT_ID}" 200
@@ -82,4 +83,4 @@ fi
 
 echo ""
 echo "=== Results: ${PASS} passed, ${FAIL} failed ==="
-[ "$FAIL" -eq 0 ] || exit 1
+[[ "$FAIL" -eq 0 ]] || exit 1

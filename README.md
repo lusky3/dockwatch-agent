@@ -92,7 +92,7 @@ volumes:
 ## Configuration
 
 | Variable | Default | Description |
-|---|---|---|
+| --- | --- | --- |
 | `PORT` | `9999` | Port the agent listens on |
 | `DOCKWATCH_API_KEY` | `dockwatch` | API key for authentication |
 | `DB_PATH` | `./config/dockwatch.db` | Path to the SQLite database |

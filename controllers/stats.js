@@ -3,13 +3,18 @@ const os = require('os');
 
 // --- Formatting helpers ---
 
+function formatPrecision(val) {
+    if (val < 10) return val.toFixed(2);
+    if (val < 100) return val.toFixed(1);
+    return val.toFixed(0);
+}
+
 function formatBytes(bytes) {
     if (bytes === 0) return '0B';
     const units = ['B', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
     const val = bytes / Math.pow(1024, i);
-    // Use MiB/GiB for memory, MB/GB for network/block
-    return `${val < 10 ? val.toFixed(2) : val < 100 ? val.toFixed(1) : val.toFixed(0)}${units[i]}`;
+    return `${formatPrecision(val)}${units[i]}`;
 }
 
 function formatBytesIEC(bytes) {
@@ -17,7 +22,7 @@ function formatBytesIEC(bytes) {
     const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
     const val = bytes / Math.pow(1024, i);
-    return `${val < 10 ? val.toFixed(2) : val < 100 ? val.toFixed(1) : val.toFixed(0)}${units[i]}`;
+    return `${formatPrecision(val)}${units[i]}`;
 }
 
 function calcCpuPercent(stats) {
