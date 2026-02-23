@@ -8,7 +8,7 @@ function ensureDir() {
 }
 
 function safeName(name) {
-    const base = path.basename(String(name)).replace(/[^a-zA-Z0-9_-]/g, '');
+    const base = path.basename(String(name)).replaceAll(/[^a-zA-Z0-9_-]/g, '');
     if (!base) throw new Error('Invalid name');
     return base;
 }

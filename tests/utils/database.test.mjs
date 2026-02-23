@@ -81,6 +81,7 @@ describe('Database Utility', () => {
     it('_setInstance replaces singleton', () => {
         const fake = { fake: true };
         getDb._setInstance(fake);
+        expect(getDb()).toBe(fake);
         // Reset back
         getDb._setInstance(null);
     });
