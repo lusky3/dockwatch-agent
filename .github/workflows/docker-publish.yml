@@ -29,7 +29,7 @@ on:
 
 env:
   GHCR_IMAGE: ghcr.io/${{ github.repository }}
-  DOCKERHUB_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/dockwatch-agent
+  DOCKERHUB_IMAGE: lusky3/dockwatch-agent
 
 jobs:
   build:
@@ -75,7 +75,7 @@ jobs:
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=sha
+            type=sha,prefix=
             type=raw,value=latest,enable={{is_default_branch}}
           labels: |
             org.opencontainers.image.title=Dockwatch Agent
