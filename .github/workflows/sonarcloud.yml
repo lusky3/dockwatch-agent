@@ -30,7 +30,7 @@ jobs:
         with:
           args: >
             -Dsonar.projectKey=lusky3_dockwatch-agent
-            -Dsonar.organization=lusky3
+            -Dsonar.organization=lusk
             -Dsonar.host.url=https://sonarcloud.io
             -Dsonar.sources=controllers,middleware,routes,utils
             -Dsonar.tests=tests
