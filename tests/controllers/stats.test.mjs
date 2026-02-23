@@ -1,18 +1,24 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createRequire } from 'node:module';
+import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
 
 const mockContainerStats = {
     cpu_stats: { cpu_usage: { total_usage: 100 }, system_cpu_usage: 1000, online_cpus: 1 },
     precpu_stats: { cpu_usage: { total_usage: 50 }, system_cpu_usage: 500 },
-    memory_stats: { usage: 1024, limit: 4096 },
-    networks: { eth0: { rx_bytes: 100, tx_bytes: 200 } },
+    memory_stats: { usage: 1024 * 1024 * 50, limit: 1024 * 1024 * 1024 },
+    networks: { eth0: { rx_bytes: 1000, tx_bytes: 2000 } },
     blkio_stats: { io_service_bytes_recursive: [] }
+};
+
+const mockInspect = {
+    State: { Health: { Status: 'healthy' } },
+    HostConfig: { NetworkMode: 'bridge' }
 };
 
 const mockContainer = {
     stats: vi.fn().mockResolvedValue(mockContainerStats),
+    inspect: vi.fn().mockResolvedValue(mockInspect),
 };
 
 const mockDocker = {
@@ -52,19 +58,33 @@ describe('Stats Controller', () => {
         mockDocker.listNetworks.mockResolvedValue([]);
         mockDocker.listVolumes.mockResolvedValue({ Volumes: [] });
         mockContainer.stats.mockResolvedValue(mockContainerStats);
+        mockContainer.inspect.mockResolvedValue(mockInspect);
     });
 
-    it('getStatsContainers returns enriched list', async () => {
+    it('getStatsContainers returns full Dockwatch format', async () => {
         mockDocker.listContainers.mockResolvedValue([
-            { Id: 'a', Names: ['/test'], Image: 'img', State: 'running', Status: 'Up', Created: 1, Ports: [], Labels: {} }
+            { Id: 'abc123', Names: ['/myapp'], Image: 'nginx:latest', State: 'running',
+              Status: 'Up 2 hours', Created: Math.floor(Date.now() / 1000) - 3600, Ports: [], Labels: {} }
         ]);
         const r = res(); await getStatsContainers(req(), r);
         expect(r.body.code).toBe(200);
-        const result = r.body.response.result;
-        expect(result).toHaveLength(1);
-        expect(result[0]).toHaveProperty('cpu');
-        expect(result[0]).toHaveProperty('memoryPercent');
-        expect(result[0].name).toBe('test');
+        const c = r.body.response.result[0];
+        expect(c.name).toBe('myapp');
+        expect(c.status).toBe('running');
+        expect(c.health).toBe('healthy');
+        expect(c.networkMode).toBe('bridge');
+        expect(c).toHaveProperty('imageSize');
+        expect(c).toHaveProperty('createdAt');
+        expect(c).toHaveProperty('uptime');
+        expect(c).toHaveProperty('server');
+        expect(c).toHaveProperty('dockwatch');
+        expect(c.usage).toHaveProperty('cpuPerc');
+        expect(c.usage.cpuPerc).toMatch(/%$/);
+        expect(c.usage).toHaveProperty('memPerc');
+        expect(c.usage).toHaveProperty('memSize');
+        expect(c.usage.memSize).toMatch(/\//);
+        expect(c.usage).toHaveProperty('blockIO');
+        expect(c.usage).toHaveProperty('netIO');
     });
 
     it('getStatsContainers 500 on error', async () => {
@@ -73,15 +93,17 @@ describe('Stats Controller', () => {
         expect(r.statusCode).toBe(500);
     });
 
-    it('getStatsMetrics returns aggregated metrics', async () => {
+    it('getStatsMetrics returns formatted metrics', async () => {
         mockDocker.listContainers.mockResolvedValue([
             { Id: 'a', State: 'running' }
         ]);
         const r = res(); await getStatsMetrics(req(), r);
         expect(r.body.code).toBe(200);
-        expect(r.body.response.result).toHaveProperty('cpu');
-        expect(r.body.response.result).toHaveProperty('memory');
-        expect(r.body.response.result).toHaveProperty('containers');
+        const result = r.body.response.result;
+        expect(result).toHaveProperty('cpu');
+        expect(result.cpu).toMatch(/%$/);
+        expect(result).toHaveProperty('memory');
+        expect(result).toHaveProperty('containers');
     });
 
     it('getStatsOverview returns summary with images/networks/volumes', async () => {

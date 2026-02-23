@@ -1,18 +1,24 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createRequire } from 'node:module';
+import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
 
 const mockContainerStats = {
     cpu_stats: { cpu_usage: { total_usage: 100 }, system_cpu_usage: 1000, online_cpus: 1 },
     precpu_stats: { cpu_usage: { total_usage: 50 }, system_cpu_usage: 500 },
-    memory_stats: { usage: 1024, limit: 4096 },
-    networks: { eth0: { rx_bytes: 100, tx_bytes: 200 } },
+    memory_stats: { usage: 1024 * 1024 * 50, limit: 1024 * 1024 * 1024 },
+    networks: { eth0: { rx_bytes: 1000, tx_bytes: 2000 } },
     blkio_stats: { io_service_bytes_recursive: [] }
+};
+
+const mockInspect = {
+    State: { Health: { Status: 'healthy' } },
+    HostConfig: { NetworkMode: 'bridge' }
 };
 
 const mockContainer = {
     stats: vi.fn().mockResolvedValue(mockContainerStats),
+    inspect: vi.fn().mockResolvedValue(mockInspect),
 };
 
 const mockDocker = {
@@ -23,7 +29,6 @@ const mockDocker = {
     getContainer: vi.fn().mockReturnValue(mockContainer),
 };
 
-// Patch CJS cache before anything loads
 const dockerPath = require.resolve('../../utils/docker.js');
 delete require.cache[dockerPath];
 require.cache[dockerPath] = {
@@ -50,17 +55,24 @@ describe('Stats Routes (integration)', () => {
         mockDocker.listNetworks.mockResolvedValue([]);
         mockDocker.listVolumes.mockResolvedValue({ Volumes: [] });
         mockContainer.stats.mockResolvedValue(mockContainerStats);
+        mockContainer.inspect.mockResolvedValue(mockInspect);
     });
 
     describe('GET /api/stats/containers', () => {
-        it('returns enriched container list', async () => {
+        it('returns full Dockwatch format', async () => {
             mockDocker.listContainers.mockResolvedValue([
-                { Id: 'a', Names: ['/test'], Image: 'img', State: 'running', Status: 'Up', Created: 1, Ports: [], Labels: {} }
+                { Id: 'abc', Names: ['/test'], Image: 'nginx', State: 'running',
+                  Status: 'Up', Created: Math.floor(Date.now() / 1000) - 600, Ports: [], Labels: {} }
             ]);
             const res = await request(app).get('/api/stats/containers').set(auth);
             expect(res.status).toBe(200);
-            expect(res.body.response.result).toHaveLength(1);
-            expect(res.body.response.result[0]).toHaveProperty('cpu');
+            const c = res.body.response.result[0];
+            expect(c).toHaveProperty('usage');
+            expect(c.usage.cpuPerc).toMatch(/%$/);
+            expect(c).toHaveProperty('health');
+            expect(c).toHaveProperty('server');
+            expect(c).toHaveProperty('createdAt');
+            expect(c).toHaveProperty('uptime');
         });
         it('returns 500 on error', async () => {
             mockDocker.listContainers.mockRejectedValue(new Error('fail'));
@@ -70,12 +82,12 @@ describe('Stats Routes (integration)', () => {
     });
 
     describe('GET /api/stats/metrics', () => {
-        it('returns aggregated metrics', async () => {
+        it('returns formatted metrics', async () => {
             mockDocker.listContainers.mockResolvedValue([{ Id: 'a', State: 'running' }]);
             const res = await request(app).get('/api/stats/metrics').set(auth);
             expect(res.status).toBe(200);
             const r = res.body.response.result;
-            expect(r).toHaveProperty('cpu');
+            expect(r.cpu).toMatch(/%$/);
             expect(r).toHaveProperty('memory');
             expect(r).toHaveProperty('containers');
         });
