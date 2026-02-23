@@ -1,5 +1,5 @@
 const getDocker = require('../utils/docker');
-const os = require('os');
+const os = require('node:os');
 
 // --- Formatting helpers ---
 

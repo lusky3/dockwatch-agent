@@ -1,5 +1,5 @@
 const Database = require('better-sqlite3');
-const path = require('path');
+const path = require('node:path');
 
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', 'config', 'dockwatch.db');
 
@@ -7,7 +7,7 @@ let _db = null;
 
 function getDb() {
     if (!_db) {
-        const fs = require('fs');
+        const fs = require('node:fs');
         const dir = path.dirname(DB_PATH);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
