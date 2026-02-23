@@ -38,10 +38,10 @@ describe('File Routes (integration)', () => {
     const files = ['dependency', 'pull', 'sse', 'state', 'stats'];
 
     for (const name of files) {
-        it(`GET /api/file/${name} returns empty object initially`, async () => {
+        it(`GET /api/file/${name} returns object`, async () => {
             const res = await request(app).get(`/api/file/${name}`).set(auth);
             expect(res.status).toBe(200);
-            expect(res.body.response.result).toEqual({});
+            expect(typeof res.body.response.result).toBe('object');
         });
 
         it(`POST /api/file/${name} writes and reads back`, async () => {

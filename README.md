@@ -15,18 +15,50 @@ Dockwatch Agent is a lightweight, headless implementation of the Dockwatch API. 
 - **Headless**: No UI, designed to be controlled by a central Dockwatch instance.
 - **Full Compatibility**: Implements the core Docker management endpoints used by Dockwatch.
 - **Secure**: Authentication via `X-Api-Key` or `apikey` query parameter.
+- **Multi-arch**: Docker images published for `linux/amd64` and `linux/arm64`.
 
 ## Quick Start
 
 ### Docker (Recommended)
 
+Images are published to both [Docker Hub](https://hub.docker.com/r/lusky3/dockwatch-agent) and [GitHub Container Registry](https://github.com/lusky3/dockwatch-agent/pkgs/container/dockwatch-agent).
+
 ```bash
+# Docker Hub
+docker run -d \
+  --name dockwatch-agent \
+  -p 9999:9999 \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -e DOCKWATCH_API_KEY=your_secure_api_key \
+  lusky3/dockwatch-agent:latest
+
+# GitHub Container Registry
 docker run -d \
   --name dockwatch-agent \
   -p 9999:9999 \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -e DOCKWATCH_API_KEY=your_secure_api_key \
   ghcr.io/lusky3/dockwatch-agent:latest
+```
+
+### Docker Compose
+
+```yaml
+services:
+  dockwatch-agent:
+    image: lusky3/dockwatch-agent:latest
+    container_name: dockwatch-agent
+    restart: unless-stopped
+    ports:
+      - "9999:9999"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - dockwatch-config:/config
+    environment:
+      - DOCKWATCH_API_KEY=your_secure_api_key
+
+volumes:
+  dockwatch-config:
 ```
 
 ### Manual Installation
@@ -57,15 +89,31 @@ docker run -d \
    npm start
    ```
 
+## Configuration
+
+| Variable | Default | Description |
+|---|---|---|
+| `PORT` | `9999` | Port the agent listens on |
+| `DOCKWATCH_API_KEY` | `dockwatch` | API key for authentication |
+| `DB_PATH` | `./config/dockwatch.db` | Path to the SQLite database |
+| `CONFIG_PATH` | `./config` | Directory for JSON config files |
+| `LOG_PATH` | `./config/logs` | Directory for log files |
+
+The Docker image maps all persistent data to `/config` via a volume.
+
 ## API Documentation
 
 The agent implements the standard Dockwatch API. Key categories include:
 
-- `/api/server/*`: Health checks and system info.
-- `/api/docker/*`: Container management (start, stop, logs, inspect).
-- `/api/stats/*`: Resource usage and metrics.
+- `/api/server/*` — Health checks, time, logs, and task management.
+- `/api/docker/*` — Container lifecycle (start, stop, restart, kill, pull, remove, create), images, networks, volumes, and orphan detection.
+- `/api/dockerAPI/*` — Container recreation from inspect data.
+- `/api/stats/*` — Per-container resource usage, aggregate metrics, and system overview.
+- `/api/database/*` — Settings, container config, groups, notification platforms/triggers/links, and server management.
+- `/api/file/*` — JSON config file storage (dependency, pull, sse, state, stats).
+- `/api/notification/*` — Notification testing.
 
-For detailed API definitions, see [Dockwatch API Docs](https://dockwatch.wiki/pages/misc/api/).
+For detailed API definitions, see the [API documentation](docs/api/dockwatch-api.md) or the upstream [Dockwatch API Docs](https://dockwatch.wiki/pages/misc/api/).
 
 ## Security
 
@@ -80,6 +128,8 @@ Pass the key as:
 
 - Header: `X-Api-Key: your_key`
 - Query Param: `?apikey=your_key`
+
+All API routes are rate-limited to 100 requests per 15-minute window.
 
 ## Contributing
 
