@@ -1,0 +1,154 @@
+name: Upstream API Monitor
+
+on:
+  schedule:
+    - cron: "0 12 * * 1" # Every Monday at noon UTC
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  check-upstream:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Fetch upstream API tree
+        id: fetch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Fetch the full tree for the API directory recursively
+          API_TREE=$(gh api repos/Notifiarr/dockwatch/git/trees/main?recursive=1 \
+            --jq '.tree[] | select(.path | startswith("root/app/www/public/api/")) | "\(.path) \(.sha)"' \
+            | sort)
+
+          # Also grab the classes directory (business logic)
+          CLASS_TREE=$(gh api repos/Notifiarr/dockwatch/git/trees/main?recursive=1 \
+            --jq '.tree[] | select(.path | startswith("root/app/www/public/classes/")) | "\(.path) \(.sha)"' \
+            | sort)
+
+          # Combine and hash
+          COMBINED=$(printf '%s\n%s' "$API_TREE" "$CLASS_TREE")
+          CURRENT_HASH=$(echo "$COMBINED" | sha256sum | cut -d' ' -f1)
+
+          echo "current_hash=$CURRENT_HASH" >> "$GITHUB_OUTPUT"
+          echo "$COMBINED" > /tmp/upstream-api-snapshot.txt
+          echo "Current upstream API hash: $CURRENT_HASH"
+
+      - name: Compare with baseline
+        id: compare
+        run: |
+          BASELINE_FILE=".github/upstream-api-baseline.sha256"
+          CURRENT="${{ steps.fetch.outputs.current_hash }}"
+
+          if [ -f "$BASELINE_FILE" ]; then
+            STORED=$(cat "$BASELINE_FILE")
+            if [ "$CURRENT" = "$STORED" ]; then
+              echo "changed=false" >> "$GITHUB_OUTPUT"
+              echo "No changes detected in upstream API"
+            else
+              echo "changed=true" >> "$GITHUB_OUTPUT"
+              echo "Upstream API has changed! (was: $STORED, now: $CURRENT)"
+            fi
+          else
+            echo "changed=first-run" >> "$GITHUB_OUTPUT"
+            echo "No baseline found, creating initial baseline"
+          fi
+
+      - name: Generate diff summary
+        if: steps.compare.outputs.changed == 'true'
+        id: diff
+        run: |
+          BASELINE_SNAPSHOT=".github/upstream-api-snapshot.txt"
+          CURRENT_SNAPSHOT="/tmp/upstream-api-snapshot.txt"
+
+          if [ -f "$BASELINE_SNAPSHOT" ]; then
+            DIFF=$(diff "$BASELINE_SNAPSHOT" "$CURRENT_SNAPSHOT" || true)
+            ADDED=$(echo "$DIFF" | grep '^>' | sed 's/^> //' | head -30)
+            REMOVED=$(echo "$DIFF" | grep '^<' | sed 's/^< //' | head -30)
+
+            {
+              echo "summary<<EOF"
+              if [ -n "$ADDED" ]; then
+                echo "### Added/Modified files:"
+                echo '```'
+                echo "$ADDED"
+                echo '```'
+              fi
+              if [ -n "$REMOVED" ]; then
+                echo "### Removed files:"
+                echo '```'
+                echo "$REMOVED"
+                echo '```'
+              fi
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          else
+            echo "summary=Baseline snapshot not found, cannot generate diff." >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open issue on change
+        if: steps.compare.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Check for existing open issue
+          EXISTING=$(gh issue list --label "upstream-api-change" --state open --json number --jq '.[0].number // empty')
+
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body "$(cat <<'BODY'
+          ## 🔄 Additional upstream API change detected
+
+          **Date:** $(date -u +"%Y-%m-%d %H:%M UTC")
+          **Hash:** `${{ steps.fetch.outputs.current_hash }}`
+
+          ${{ steps.diff.outputs.summary }}
+
+          Review changes at: https://github.com/Notifiarr/dockwatch/tree/main/root/app/www/public/api
+          BODY
+          )"
+            echo "Commented on existing issue #$EXISTING"
+          else
+            gh issue create \
+              --title "Upstream Dockwatch API change detected" \
+              --label "upstream-api-change" \
+              --body "$(cat <<'BODY'
+          ## 🔔 Upstream API Change Detected
+
+          The [Notifiarr/dockwatch](https://github.com/Notifiarr/dockwatch) API has changed since our last check.
+
+          **Date:** $(date -u +"%Y-%m-%d %H:%M UTC")
+          **New hash:** `${{ steps.fetch.outputs.current_hash }}`
+
+          ${{ steps.diff.outputs.summary }}
+
+          ### Action needed
+          1. Review the upstream changes: https://github.com/Notifiarr/dockwatch/tree/main/root/app/www/public/api
+          2. Update our agent endpoints if needed
+          3. Update the API docs in \`docs/api/dockwatch-api.md\`
+          4. Close this issue once addressed
+
+          ### Monitored paths
+          - \`root/app/www/public/api/**\` (API endpoints)
+          - \`root/app/www/public/classes/**\` (business logic)
+          BODY
+          )"
+            echo "Created new issue"
+          fi
+
+      - name: Update baseline
+        if: steps.compare.outputs.changed == 'true' || steps.compare.outputs.changed == 'first-run'
+        run: |
+          mkdir -p .github
+          echo "${{ steps.fetch.outputs.current_hash }}" > .github/upstream-api-baseline.sha256
+          cp /tmp/upstream-api-snapshot.txt .github/upstream-api-snapshot.txt
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/upstream-api-baseline.sha256 .github/upstream-api-snapshot.txt
+          git commit -m "chore: update upstream API baseline [skip ci]"
+          git push
