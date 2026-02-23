@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const rateLimit = require('express-rate-limit');
 const authMiddleware = require('./middleware/auth');
 
 const app = express();
@@ -13,6 +14,16 @@ app.use(helmet());
 app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json());
+
+// Rate limiting
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { code: 429, error: 'Too many requests, please try again later' }
+});
+app.use('/api', apiLimiter);
 
 // Auth
 app.use('/api', authMiddleware);

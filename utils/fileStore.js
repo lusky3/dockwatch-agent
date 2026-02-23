@@ -10,7 +10,11 @@ function ensureDir() {
 }
 
 function filePath(name) {
-    return path.join(CONFIG_DIR, `${name}.json`);
+    if (!FILES.includes(name)) throw new Error('Invalid file name');
+    const fp = path.join(CONFIG_DIR, `${path.basename(name)}.json`);
+    const resolved = path.resolve(fp);
+    if (!resolved.startsWith(path.resolve(CONFIG_DIR))) throw new Error('Invalid path');
+    return resolved;
 }
 
 function readJsonFile(name) {
