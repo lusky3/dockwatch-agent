@@ -138,3 +138,7 @@ Please read [CONTRIBUTING.md](.github/CONTRIBUTING.md) for details on our code o
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## AI Usage Disclaimer
+
+Portions of this codebase were generated with the assistance of Large Language Models (LLMs). All AI-generated code has been reviewed and tested to ensure quality and correctness.
