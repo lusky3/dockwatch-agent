@@ -106,3 +106,6 @@ test_api.js
 
 # Dockwatch config/data
 config/
+
+# Test artifacts
+tests/_test_*
