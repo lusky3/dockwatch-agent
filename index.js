@@ -20,7 +20,11 @@ app.use('/api', authMiddleware);
 // Routes
 app.use('/api/server', require('./routes/server'));
 app.use('/api/docker', require('./routes/docker'));
+app.use('/api/dockerAPI', require('./routes/dockerAPI'));
 app.use('/api/stats', require('./routes/stats'));
+app.use('/api/database', require('./routes/database'));
+app.use('/api/file', require('./routes/file'));
+app.use('/api/notification', require('./routes/notification'));
 
 // Root Health Check
 app.get('/ping', (req, res) => res.send('pong'));

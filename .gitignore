@@ -103,3 +103,6 @@ temp/
 .gemini/
 server.log
 test_api.js
+
+# Dockwatch config/data
+config/

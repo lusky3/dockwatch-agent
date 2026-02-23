@@ -6,10 +6,10 @@ const API_KEY = process.env.DOCKWATCH_API_KEY || 'dockwatch';
 const auth = { 'X-Api-Key': API_KEY };
 
 describe('Server Controller', () => {
-    it('GET /api/server/ping returns pong', async () => {
+    it('GET /api/server/ping returns version string', async () => {
         const res = await request(app).get('/api/server/ping').set(auth);
         expect(res.status).toBe(200);
-        expect(res.body.response.result).toBe('pong');
+        expect(res.body.response.result).toMatch(/^v\d+\.\d+\.\d+ - v\d+\.\d+\.\d+$/);
     });
 
     it('GET /api/server/time returns time and timezone', async () => {

@@ -3,8 +3,24 @@ import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
 
+const mockContainerStats = {
+    cpu_stats: { cpu_usage: { total_usage: 100 }, system_cpu_usage: 1000, online_cpus: 1 },
+    precpu_stats: { cpu_usage: { total_usage: 50 }, system_cpu_usage: 500 },
+    memory_stats: { usage: 1024, limit: 4096 },
+    networks: { eth0: { rx_bytes: 100, tx_bytes: 200 } },
+    blkio_stats: { io_service_bytes_recursive: [] }
+};
+
+const mockContainer = {
+    stats: vi.fn().mockResolvedValue(mockContainerStats),
+};
+
 const mockDocker = {
     listContainers: vi.fn(),
+    listImages: vi.fn().mockResolvedValue([]),
+    listNetworks: vi.fn().mockResolvedValue([]),
+    listVolumes: vi.fn().mockResolvedValue({ Volumes: [] }),
+    getContainer: vi.fn().mockReturnValue(mockContainer),
 };
 
 // Patch CJS cache before anything loads
@@ -28,14 +44,23 @@ const API_KEY = process.env.DOCKWATCH_API_KEY || 'dockwatch';
 const auth = { 'X-Api-Key': API_KEY };
 
 describe('Stats Routes (integration)', () => {
-    beforeEach(() => { mockDocker.listContainers.mockReset(); });
+    beforeEach(() => {
+        mockDocker.listContainers.mockReset();
+        mockDocker.listImages.mockResolvedValue([]);
+        mockDocker.listNetworks.mockResolvedValue([]);
+        mockDocker.listVolumes.mockResolvedValue({ Volumes: [] });
+        mockContainer.stats.mockResolvedValue(mockContainerStats);
+    });
 
     describe('GET /api/stats/containers', () => {
-        it('returns container list', async () => {
-            mockDocker.listContainers.mockResolvedValue([{ Id: 'a', State: 'running' }]);
+        it('returns enriched container list', async () => {
+            mockDocker.listContainers.mockResolvedValue([
+                { Id: 'a', Names: ['/test'], Image: 'img', State: 'running', Status: 'Up', Created: 1, Ports: [], Labels: {} }
+            ]);
             const res = await request(app).get('/api/stats/containers').set(auth);
             expect(res.status).toBe(200);
-            expect(res.body.response.result).toEqual([{ Id: 'a', State: 'running' }]);
+            expect(res.body.response.result).toHaveLength(1);
+            expect(res.body.response.result[0]).toHaveProperty('cpu');
         });
         it('returns 500 on error', async () => {
             mockDocker.listContainers.mockRejectedValue(new Error('fail'));
@@ -45,11 +70,14 @@ describe('Stats Routes (integration)', () => {
     });
 
     describe('GET /api/stats/metrics', () => {
-        it('returns metric placeholders', async () => {
+        it('returns aggregated metrics', async () => {
+            mockDocker.listContainers.mockResolvedValue([{ Id: 'a', State: 'running' }]);
             const res = await request(app).get('/api/stats/metrics').set(auth);
             expect(res.status).toBe(200);
             const r = res.body.response.result;
-            expect(r).toEqual({ cpu: 0, memory: 0, disk: 0 });
+            expect(r).toHaveProperty('cpu');
+            expect(r).toHaveProperty('memory');
+            expect(r).toHaveProperty('containers');
         });
     });
 
@@ -59,9 +87,15 @@ describe('Stats Routes (integration)', () => {
                 { State: 'running' }, { State: 'running' },
                 { State: 'exited' }, { State: 'paused' },
             ]);
+            mockDocker.listImages.mockResolvedValue([{}, {}]);
+            mockDocker.listNetworks.mockResolvedValue([{}]);
+            mockDocker.listVolumes.mockResolvedValue({ Volumes: [{}] });
             const res = await request(app).get('/api/stats/overview').set(auth);
             expect(res.status).toBe(200);
-            expect(res.body.response.result).toEqual({ total: 4, running: 2, paused: 1, stopped: 1 });
+            expect(res.body.response.result).toEqual({
+                total: 4, running: 2, paused: 1, stopped: 1,
+                images: 2, networks: 1, volumes: 1
+            });
         });
         it('returns 500 on error', async () => {
             mockDocker.listContainers.mockRejectedValue(new Error('fail'));
