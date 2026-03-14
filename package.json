@@ -17,7 +17,7 @@
   "license": "MIT",
   "type": "commonjs",
   "dependencies": {
-    "better-sqlite3": "^12.6.2",
+    "better-sqlite3": "^12.8.0",
     "cors": "^2.8.6",
     "dockerode": "^4.0.9",
     "dotenv": "^17.3.1",
