@@ -8,7 +8,7 @@ on:
 
 jobs:
   javascript:
-    name: ESLint
+    name: Oxlint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
