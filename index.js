@@ -36,6 +36,7 @@ app.use('/api/stats', require('./routes/stats'));
 app.use('/api/database', require('./routes/database'));
 app.use('/api/file', require('./routes/file'));
 app.use('/api/notification', require('./routes/notification'));
+app.use('/api/system', require('./routes/system'));
 
 // Root landing page
 app.get('/', (req, res) => {

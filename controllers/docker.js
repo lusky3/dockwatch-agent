@@ -363,6 +363,68 @@ function buildRunFromInspect(data) {
     return parts.join(' \\\n  ');
 }
 
+// --- POST /docker/login ---
+const postLogin = async (req, res) => {
+    const { registry, username, password } = req.body;
+    if (!registry) return res.status(400).json({ code: 400, error: 'Missing registry parameter' });
+    if (!username) return res.status(400).json({ code: 400, error: 'Missing username parameter' });
+    if (!password) return res.status(400).json({ code: 400, error: 'Missing password parameter' });
+    try {
+        const auth = { username, password, serveraddress: registry };
+        const result = await getDocker().checkAuth(auth);
+        res.json({ code: 200, response: { result } });
+    } catch (error) {
+        res.status(500).json({ code: 500, error: error.message });
+    }
+};
+
+// --- GET /docker/container/shell ---
+const getContainerShell = async (req, res) => {
+    const { name, params } = req.query;
+    if (!name) return res.status(400).json({ code: 400, error: 'Missing name parameter' });
+    if (!params) return res.status(400).json({ code: 400, error: 'Missing parameters' });
+    try {
+        const container = getDocker().getContainer(name);
+        const info = await container.inspect();
+        if (!info.State.Running) {
+            return res.json({ code: 200, response: { result: `Container ${name} is not running or does not exist` } });
+        }
+        const cmd = typeof params === 'string' ? params.split(' ') : params;
+        const exec = await container.exec({ Cmd: cmd, AttachStdout: true, AttachStderr: true });
+        const stream = await exec.start({ Detach: false, Tty: false });
+        let output = '';
+        await new Promise((resolve, reject) => {
+            stream.on('data', (chunk) => { output += chunk.toString(); });
+            stream.on('end', resolve);
+            stream.on('error', reject);
+        });
+        // Strip dockerode demux header bytes from each frame
+        // eslint-disable-next-line no-control-regex
+        const cleaned = output.replace(/[\u0000-\u0008]/g, '').trim();
+        res.json({ code: 200, response: { result: cleaned } });
+    } catch (error) {
+        res.status(500).json({ code: 500, error: error.message });
+    }
+};
+
+// --- GET /docker/compose/command ---
+const getComposeCommand = async (req, res) => {
+    const { name, params } = req.query;
+    if (!name) return res.status(400).json({ code: 400, error: 'Missing name parameter' });
+    if (!params) return res.status(400).json({ code: 400, error: 'Missing parameters' });
+    try {
+        const { execSync } = require('child_process');
+        const safeName = name.replace(/[^a-zA-Z0-9_\-.]/g, '');
+        const safeParams = params.replace(/[;&|`$]/g, '');
+        const cmd = `docker compose ${safeParams} ${safeName}`;
+        const result = execSync(cmd, { encoding: 'utf8', timeout: 30000 }).trim();
+        res.json({ code: 200, response: { result } });
+    } catch (error) {
+        const output = error.stdout || error.stderr || error.message;
+        res.json({ code: 200, response: { result: output } });
+    }
+};
+
 module.exports = {
     getProcessList, getContainerInspect, getContainerLogs,
     postContainerStart, postContainerStop, postContainerRestart,
@@ -371,5 +433,6 @@ module.exports = {
     postImageRemove, getImagesSizes,
     getNetworks, postNetworkRemove,
     getOrphansContainers, getOrphansNetworks, getOrphansVolumes,
-    getPermissions, getStats, getUnusedContainers, postVolumeRemove
+    getPermissions, getStats, getUnusedContainers, postVolumeRemove,
+    postLogin, getContainerShell, getComposeCommand
 };
