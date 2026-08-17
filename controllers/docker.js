@@ -392,16 +392,23 @@ const getContainerShell = async (req, res) => {
         const cmd = typeof params === 'string' ? params.split(' ') : params;
         const exec = await container.exec({ Cmd: cmd, AttachStdout: true, AttachStderr: true });
         const stream = await exec.start({ Detach: false, Tty: false });
+
+        // Demux the multiplexed Docker stream (8-byte header per frame)
+        const { PassThrough } = require('stream');
+        const stdout = new PassThrough();
+        const stderr = new PassThrough();
+        const docker = getDocker();
+        docker.modem.demuxStream(stream, stdout, stderr);
+
         let output = '';
-        await new Promise((resolve, reject) => {
-            stream.on('data', (chunk) => { output += chunk.toString(); });
+        stdout.on('data', (chunk) => { output += chunk.toString(); });
+        stderr.on('data', (chunk) => { output += chunk.toString(); });
+
+        await new Promise((resolve) => {
             stream.on('end', resolve);
-            stream.on('error', reject);
         });
-        // Strip dockerode demux header bytes from each frame
-        // eslint-disable-next-line no-control-regex
-        const cleaned = output.replace(/[\u0000-\u0008]/g, '').trim();
-        res.json({ code: 200, response: { result: cleaned } });
+
+        res.json({ code: 200, response: { result: output.trim() } });
     } catch (error) {
         res.status(500).json({ code: 500, error: error.message });
     }
@@ -413,11 +420,13 @@ const getComposeCommand = async (req, res) => {
     if (!name) return res.status(400).json({ code: 400, error: 'Missing name parameter' });
     if (!params) return res.status(400).json({ code: 400, error: 'Missing parameters' });
     try {
-        const { execSync } = require('child_process');
-        const safeName = name.replace(/[^a-zA-Z0-9_\-.]/g, '');
-        const safeParams = params.replace(/[;&|`$]/g, '');
-        const cmd = `docker compose ${safeParams} ${safeName}`;
-        const result = execSync(cmd, { encoding: 'utf8', timeout: 30000 }).trim();
+        const { execFileSync } = require('child_process');
+        const args = params.split(/\s+/).filter(Boolean);
+        args.push(name);
+        const result = execFileSync('docker', ['compose', ...args], {
+            encoding: 'utf8',
+            timeout: 30000
+        }).trim();
         res.json({ code: 200, response: { result } });
     } catch (error) {
         const output = error.stdout || error.stderr || error.message;

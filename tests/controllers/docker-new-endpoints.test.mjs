@@ -3,21 +3,24 @@ import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
 
-const mockExecStream = {
-    on: vi.fn((event, cb) => {
-        if (event === 'data') cb(Buffer.from('command output'));
-        if (event === 'end') cb();
-        return mockExecStream;
-    }),
-};
+const { PassThrough } = await import('stream');
+
+const mockExecStream = new PassThrough();
 const mockExec = { start: vi.fn().mockResolvedValue(mockExecStream) };
 const mockContainer = {
     inspect: vi.fn(),
     exec: vi.fn().mockResolvedValue(mockExec),
 };
+const mockModem = {
+    demuxStream: vi.fn((stream, stdout, _stderr) => {
+        stdout.write('command output');
+        stream.emit('end');
+    }),
+};
 const mockDocker = {
     getContainer: vi.fn(() => mockContainer),
     checkAuth: vi.fn(),
+    modem: mockModem,
 };
 
 const dockerPath = require.resolve('../../utils/docker.js');
@@ -44,6 +47,16 @@ describe('Docker Controller - Login, Shell, Compose', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockContainer.inspect.mockResolvedValue({ State: { Running: true } });
+        mockContainer.exec.mockResolvedValue(mockExec);
+        mockExec.start.mockImplementation(() => {
+            const stream = new PassThrough();
+            mockModem.demuxStream.mockImplementation((_s, stdout, _stderr) => {
+                stdout.write('command output');
+                // Emit end on next tick to simulate Docker stream completion
+                process.nextTick(() => stream.emit('end'));
+            });
+            return Promise.resolve(stream);
+        });
     });
 
     describe('POST /docker/login', () => {
