@@ -363,6 +363,77 @@ function buildRunFromInspect(data) {
     return parts.join(' \\\n  ');
 }
 
+// --- POST /docker/login ---
+const postLogin = async (req, res) => {
+    const { registry, username, password } = req.body;
+    if (!registry) return res.status(400).json({ code: 400, error: 'Missing registry parameter' });
+    if (!username) return res.status(400).json({ code: 400, error: 'Missing username parameter' });
+    if (!password) return res.status(400).json({ code: 400, error: 'Missing password parameter' });
+    try {
+        const auth = { username, password, serveraddress: registry };
+        const result = await getDocker().checkAuth(auth);
+        res.json({ code: 200, response: { result } });
+    } catch (error) {
+        res.status(500).json({ code: 500, error: error.message });
+    }
+};
+
+// --- GET /docker/container/shell ---
+const getContainerShell = async (req, res) => {
+    const { name, params } = req.query;
+    if (!name) return res.status(400).json({ code: 400, error: 'Missing name parameter' });
+    if (!params) return res.status(400).json({ code: 400, error: 'Missing parameters' });
+    try {
+        const container = getDocker().getContainer(name);
+        const info = await container.inspect();
+        if (!info.State.Running) {
+            return res.json({ code: 200, response: { result: `Container ${name} is not running or does not exist` } });
+        }
+        const cmd = typeof params === 'string' ? params.split(' ') : params;
+        const exec = await container.exec({ Cmd: cmd, AttachStdout: true, AttachStderr: true });
+        const stream = await exec.start({ Detach: false, Tty: false });
+
+        // Demux the multiplexed Docker stream (8-byte header per frame)
+        const { PassThrough } = require('stream');
+        const stdout = new PassThrough();
+        const stderr = new PassThrough();
+        const docker = getDocker();
+        docker.modem.demuxStream(stream, stdout, stderr);
+
+        let output = '';
+        stdout.on('data', (chunk) => { output += chunk.toString(); });
+        stderr.on('data', (chunk) => { output += chunk.toString(); });
+
+        await new Promise((resolve) => {
+            stream.on('end', resolve);
+        });
+
+        res.json({ code: 200, response: { result: output.trim() } });
+    } catch (error) {
+        res.status(500).json({ code: 500, error: error.message });
+    }
+};
+
+// --- GET /docker/compose/command ---
+const getComposeCommand = async (req, res) => {
+    const { name, params } = req.query;
+    if (!name) return res.status(400).json({ code: 400, error: 'Missing name parameter' });
+    if (!params) return res.status(400).json({ code: 400, error: 'Missing parameters' });
+    try {
+        const { execFileSync } = require('child_process');
+        const args = params.split(/\s+/).filter(Boolean);
+        args.push(name);
+        const result = execFileSync('docker', ['compose', ...args], {
+            encoding: 'utf8',
+            timeout: 30000
+        }).trim();
+        res.json({ code: 200, response: { result } });
+    } catch (error) {
+        const output = error.stdout || error.stderr || error.message;
+        res.json({ code: 200, response: { result: output } });
+    }
+};
+
 module.exports = {
     getProcessList, getContainerInspect, getContainerLogs,
     postContainerStart, postContainerStop, postContainerRestart,
@@ -371,5 +442,6 @@ module.exports = {
     postImageRemove, getImagesSizes,
     getNetworks, postNetworkRemove,
     getOrphansContainers, getOrphansNetworks, getOrphansVolumes,
-    getPermissions, getStats, getUnusedContainers, postVolumeRemove
+    getPermissions, getStats, getUnusedContainers, postVolumeRemove,
+    postLogin, getContainerShell, getComposeCommand
 };

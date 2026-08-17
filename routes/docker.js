@@ -29,5 +29,8 @@ router.get('/permissions', dc.getPermissions);
 router.get('/stats', dc.getStats);
 router.get('/unused/containers', dc.getUnusedContainers);
 router.post('/volume/remove', dc.postVolumeRemove);
+router.post('/login', dc.postLogin);
+router.get('/container/shell', dc.getContainerShell);
+router.get('/compose/command', dc.getComposeCommand);
 
 module.exports = router;
