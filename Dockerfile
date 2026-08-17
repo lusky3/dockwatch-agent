@@ -1,4 +1,4 @@
-FROM node:25-alpine
+FROM node:26-alpine
 
 LABEL org.opencontainers.image.title="Dockwatch Agent" \
       org.opencontainers.image.description="Headless Docker monitoring agent with full REST API" \
