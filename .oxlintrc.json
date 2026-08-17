@@ -1,0 +1,11 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "error"
+  },
+  "rules": {
+    "eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+    "eslint/no-empty": ["error", { "allowEmptyCatch": true }]
+  },
+  "ignorePatterns": ["node_modules/**", "config/**", "coverage/**"]
+}
