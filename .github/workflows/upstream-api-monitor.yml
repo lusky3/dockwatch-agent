@@ -95,48 +95,53 @@ jobs:
         if: steps.compare.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CURRENT_HASH: ${{ steps.fetch.outputs.current_hash }}
+          DIFF_SUMMARY: ${{ steps.diff.outputs.summary }}
         run: |
-          # Check for existing open issue
+          NOW=$(date -u +"%Y-%m-%d %H:%M UTC")
+          UPSTREAM_URL="https://github.com/Notifiarr/dockwatch/tree/main/root/app/www/public/api"
+
+          # Avoid duplicates: comment on an open issue if there is one
           EXISTING=$(gh issue list --label "upstream-api-change" --state open --json number --jq '.[0].number // empty')
 
           if [ -n "$EXISTING" ]; then
-            gh issue comment "$EXISTING" --body "$(cat <<'BODY'
-          ## 🔄 Additional upstream API change detected
-
-          **Date:** $(date -u +"%Y-%m-%d %H:%M UTC")
-          **Hash:** `${{ steps.fetch.outputs.current_hash }}`
-
-          ${{ steps.diff.outputs.summary }}
-
-          Review changes at: https://github.com/Notifiarr/dockwatch/tree/main/root/app/www/public/api
-          BODY
-          )"
+            {
+              echo "## 🔄 Additional upstream API change detected"
+              echo
+              echo "**Date:** $NOW"
+              echo "**Hash:** \`$CURRENT_HASH\`"
+              echo
+              echo "$DIFF_SUMMARY"
+              echo
+              echo "Review changes at: $UPSTREAM_URL"
+            } > /tmp/issue-body.md
+            gh issue comment "$EXISTING" --body-file /tmp/issue-body.md
             echo "Commented on existing issue #$EXISTING"
           else
+            {
+              echo "## 🔔 Upstream API Change Detected"
+              echo
+              echo "The [Notifiarr/dockwatch](https://github.com/Notifiarr/dockwatch) API has changed since our last check."
+              echo
+              echo "**Date:** $NOW"
+              echo "**New hash:** \`$CURRENT_HASH\`"
+              echo
+              echo "$DIFF_SUMMARY"
+              echo
+              echo "### Action needed"
+              echo "1. Review the upstream changes: $UPSTREAM_URL"
+              echo "2. Update our agent endpoints if needed"
+              echo "3. Update the API docs in \`docs/api/dockwatch-api.md\`"
+              echo "4. Close this issue once addressed"
+              echo
+              echo "### Monitored paths"
+              echo "- \`root/app/www/public/api/**\` (API endpoints)"
+              echo "- \`root/app/www/public/classes/**\` (business logic)"
+            } > /tmp/issue-body.md
             gh issue create \
               --title "Upstream Dockwatch API change detected" \
               --label "upstream-api-change" \
-              --body "$(cat <<'BODY'
-          ## 🔔 Upstream API Change Detected
-
-          The [Notifiarr/dockwatch](https://github.com/Notifiarr/dockwatch) API has changed since our last check.
-
-          **Date:** $(date -u +"%Y-%m-%d %H:%M UTC")
-          **New hash:** `${{ steps.fetch.outputs.current_hash }}`
-
-          ${{ steps.diff.outputs.summary }}
-
-          ### Action needed
-          1. Review the upstream changes: https://github.com/Notifiarr/dockwatch/tree/main/root/app/www/public/api
-          2. Update our agent endpoints if needed
-          3. Update the API docs in \`docs/api/dockwatch-api.md\`
-          4. Close this issue once addressed
-
-          ### Monitored paths
-          - \`root/app/www/public/api/**\` (API endpoints)
-          - \`root/app/www/public/classes/**\` (business logic)
-          BODY
-          )"
+              --body-file /tmp/issue-body.md
             echo "Created new issue"
           fi
 
