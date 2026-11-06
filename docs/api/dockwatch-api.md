@@ -9,6 +9,9 @@ Parameter `?apikey={apikey}`
     curl "http://{host}:9999/api/database/containers?apikey={apikey}"
     ```
 
+An empty or missing key is always rejected with `401`. Upstream compares keys in constant time
+(`hash_equals`) and records failed attempts as `invalid_api_key` intrusion events.
+
 ## Responses
 
 All responses are JSON with possible response codes:
@@ -42,7 +45,7 @@ Error example:
 }
 ```
 
-## /api/database/* - 25
+## /api/database/* - 26
 
 ### <span style="display:none;">container/add</span>
 
@@ -307,6 +310,18 @@ Error example:
         | ----- | ----- | ----- |
         | `newSettings` | object | yes |
 
+### <span style="display:none;">users</span>
+
+??? abstract "users"
+    Endpoint: `/api/database/users`<br>
+    Usage: Get/set Dockwatch login users. Passwords are never returned. In `userList`, an id of `0` creates a user, `remove` deletes one, otherwise the given fields are updated. Upstream only calls this on the local server, never on linked remotes. The agent does not implement it.
+    === "GET"
+        No parameters
+    === "POST"
+        | Parameter | Type | Required |
+        | ----- | ----- | ----- |
+        | `userList` | object | yes |
+
 ## /api/docker/* - 24
 
 ### <span style="display:none;">container/create</span>
@@ -411,7 +426,7 @@ Error example:
 
 ??? abstract "create/compose"
     Endpoint: `/api/docker/create/compose`<br>
-    Usage: Genertate a compose file for a container
+    Usage: Genertate a compose file for a container. Removed upstream (Notifiarr/dockwatch d217b6d, replaced by the compose/shell WebSocket channels); the agent still serves it for older clients.
     === "GET"
         | Parameter | Type | Required |
         | ----- | ----- | ----- |
@@ -467,7 +482,7 @@ Error example:
 
 ??? abstract "orphans/containers"
     Endpoint: `/api/docker/orphans/containers`<br>
-    Usage: Return a list of containers
+    Usage: Return a list of containers. Upstream now also checks the process list so images still in use are not reported.
     === "GET"
         No parameters
 
